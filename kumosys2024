@@ -35,6 +35,8 @@ use Mojolicious::Lite -signatures;
 
 use lib 'lib';
 use Kumo::Sys2024;
+use POSIX qw(strftime);
+
 my $kumosys = Kumo::Sys2024->new();
 
 
@@ -47,9 +49,28 @@ get '/heartbeat' => sub($c) {
    $c->render(text=>1);
 };
 
+get '/jikans' => sub($c) {
+  my $time = strftime "%H:%M:%S", localtime;
+  $c->render(text=>"".$time);
+};
+
 get '/jikan' => sub($c) {
   $c->render(text=>"".localtime);
 };
+
+get '/tenki' => sub($c) {
+  $c->render(text=>"wip tho");
+};
+
+get '/test' => sub($c) {
+  $c->render(text=>"hewwo");
+};
+
+get '/update' => sub($c) {
+   $kumosys->log("msg", "update triggered... :3");
+   $kumosys->update();
+};
+
 # 
 # get '/tenki' => sub($c) {
 #   $c->render(text=>""."testing");
