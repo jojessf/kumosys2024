@@ -120,9 +120,48 @@ sub startup {
       $self->{$fkey} = $self->jSlurp($fil);
    };   
    
-   
    return 1;
 };
+
+# ----------------------------------------------------------------- #
+sub getTenki {
+   my $self = shift;
+   my $WD = $self->{data}->{webdata};
+   my $raw; 
+   if ( ref($WD->{tenki}) =~ /HASH/ ) {
+      if ( $WD->{tenki}->{res} ) {
+
+      }
+   }
+   if ( $raw ) {
+
+   } else {
+      return "wippin it";
+   }
+}
+
+sub getTenki2 {
+   my $self = shift;
+   my $WD = $self->{data}->{webdata};
+   my $raw;
+   my $hash; 
+   
+   if ( ref($WD->{weather}) =~ /HASH/ ) {
+      if ( $WD->{weather}->{res} ) {
+         $raw = $WD->{weather}->{res};
+         $hash = $self->{json}->decode( $raw );
+         $self->log("msg", "processing " . length($raw) . "bytes..." );
+
+         return Dumper([ $hash ]);
+
+      }
+   }
+   if ( $raw ) {
+
+   } else {
+      return "wippin it";
+   }
+}
 
 # ----------------------------------------------------------------- #
 sub update {
@@ -146,20 +185,21 @@ sub update {
          $self->log("msg", "Current: $name");
 
       } else {
+         my $tdiff = $self->{now} - $self->{data}->{webdata}->{$name}->{utime};
          $self->log("msg", "Stale, DB fetch $name :: "
             . "rtime[" . $self->{data}->{webdata}->{$name}->{utime} . "],"
-            . "now[". $self->{now} . "] ~" .  $timefrom . " :: " . $timefrom - $self->{now}
+            . "now[". $self->{now} . "] ~" .  $timefrom . " :: " . $tdiff
          );
 
          my $sQuery = "SELECT * from $table WHERE name=? AND utime > ? ORDER BY utime DESC";
          my $sth = $dbh->prepare($sQuery);
          my $values = [$name, $timefrom];
-         $self->log("msg", "DB: " . $sQuery . ":: " . join(",", @{$values}) );
+         $self->log("DB", "DB: " . $sQuery . ":: " . join(",", @{$values}) );
          $sth->execute(@{$values});
 
          while (my $ref = $sth->fetchrow_hashref()) {
-            $self->log("msg", "Found a row: id = $ref->{'name'}, $ref->{'utime'}" );
-            $self->{data}->{webdata}->{ $ref->{name} } = {
+            $self->log("msg", "Found current DB entry: id = $ref->{'name'}, $ref->{'utime'}" );
+            $self->{data}->{webdata}->{ $name } = {
                name => $ref->{name},
                url => $ref->{url},
                utime => $ref->{utime},
@@ -167,11 +207,10 @@ sub update {
                ts => $ref->{ts}
             };
          
-            print Dumper([
-               $ref->{name},
-               $self->{data}->{webdata}->{ $ref->{name} }
-            ]) . "\n";
-
+            # print Dumper([
+            #    $ref->{name},
+            #    $self->{data}->{webdata}->{ $ref->{name} }
+            # ]) . "\n";
 
             $resq++;
          }
