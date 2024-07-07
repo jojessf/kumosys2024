@@ -32,6 +32,7 @@ package Kumo::Sys2024;
 
 use strict;
 use Data::Dumper;
+use POSIX qw(strftime);
 use LWP::Simple;
 use JSON;
 use DBI;
@@ -87,7 +88,7 @@ sub dbinit {
    $self->{dbh} = $dbh;
 
    # ----------------------------------------------------------------------#
-   my $DBFields = "name,url,utime,res";
+   my $DBFields = "name,url,utime,res,ts";
    my $ReValues;
    my $DBValues = "VALUES";
    my $DBIVal = 'VALUES (';
@@ -103,10 +104,6 @@ sub dbinit {
    chop($ReValues);
    $DBIVal.= ")";
    $DBFieldsI .= ")";
-
-   # Append a (?,?) for each one of our keypairs.
-   #$DBValues .= join(',',map { $DBIVal } keys(%data));
-
    my $DBq = "INSERT INTO $table $DBFieldsI $DBIVal ON DUPLICATE KEY UPDATE $ReValues;";
    $self->log( "DB", $DBq );
    $self->{insert_webdata} = $dbh->prepare($DBq);
@@ -133,6 +130,7 @@ sub update {
    my $dbh = $self->{dbh};
    my $STHi = $self->{insert_webdata};
    $self->{now} = time();
+   my $dtR = strftime "%Y-%m-%d %H:%M:%S", localtime;
 
    foreach my $wdata ( @{ $self->{conf}->{webdata} } ) {
       my $name   = $wdata->{name};
@@ -150,7 +148,7 @@ sub update {
       } else {
          $self->log("msg", "Stale, DB fetch $name :: "
             . "rtime[" . $self->{data}->{webdata}->{$name}->{utime} . "],"
-            . "now[". $self->{now} . "] ~" .  $timefrom
+            . "now[". $self->{now} . "] ~" .  $timefrom . " :: " . $timefrom - $self->{now}
          );
 
          my $sQuery = "SELECT * from $table WHERE name=? AND utime > ? ORDER BY utime DESC";
@@ -166,6 +164,7 @@ sub update {
                url => $ref->{url},
                utime => $ref->{utime},
                res => $ref->{res},
+               ts => $ref->{ts}
             };
          
             print Dumper([
@@ -184,15 +183,15 @@ sub update {
          my $fdata = get($url);
          $self->log("msg", "Fetch got " . length($fdata) . " bytes...!");
          
-
          $self->{data}->{webdata}->{$name} = {
             name => $name,
             url => $url,
             utime => $self->{now},
             res => $fdata,
+            ts => $dtR
          };
 
-         $STHi->execute($name, $url, $self->{now}, $fdata);
+         $STHi->execute($name, $url, $self->{now}, $fdata, $dtR);
       }
 
    }
