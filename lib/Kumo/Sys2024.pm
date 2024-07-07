@@ -125,11 +125,30 @@ sub startup {
 
 # ----------------------------------------------------------------- #
 
+sub getX {
+   my $self = shift;
+   my $key  = shift;
+   my $WD   = $self->{data}->{webdata};
+   
+   my $val;
+   if ( ref($self->{data}->{webdata}->{$key}) =~ /HASH/ ) {
+      $val = $self->{data}->{webdata}->{$key}->{res};
+   }
+   
+   return($val) if $val;
+   
+   return "UwU";
+}
+
+
+
 sub getTenki {
    my $self = shift;
    my $WD = $self->{data}->{webdata};
    my $raw;
    my $hash; 
+   $self->{now} = time();
+   $self->{dtR} = strftime "%Y-%m-%d %H:%M:%S", localtime;
    
    $self->log("msg", "tenki? " . ref( $WD->{weather}) ."" );
 
@@ -139,21 +158,103 @@ sub getTenki {
          $hash = $self->{json}->decode( $raw );
          $self->log("msg", "tenki ~ " . length($raw) . "bytes..." );
 
-         my $temps;
+         my ( $temp, $temps, $precips, $winds, $forecast, $forecastShort, $winds, $wind );
          if ( ref($hash->{properties}) =~ /HASH/ ) {
             if ( ref($hash->{properties}->{periods}) =~ /ARRAY/ ) {
+               
+               $temp      = $hash->{properties}->{periods}->[0]->{temperature}; # 89
+               $forecastShort = $hash->{properties}->{periods}->[0]->{shortForecast}; # "Sunny"
+               $forecast  = $hash->{properties}->{periods}->[0]->{name}; # "This Afternoon"
+               $forecast .= ": ";
+               $forecast .= $hash->{properties}->{periods}->[0]->{detailedForecast}; # "Sunny, with a high near ..."
+               $wind      = $hash->{properties}->{periods}->[0]->{windDirection};
+               $wind     .= " ";
+               $wind     .= $hash->{properties}->{periods}->[0]->{windSpeed};
+               
+               
                foreach my $period ( @{ $hash->{properties}->{periods} } ) {
                   push(@{$temps}, $period->{temperature});
+                  $winds .= $hash->{properties}->{periods}->[0]->{windDirection};
+                  $winds .= $hash->{properties}->{periods}->[0]->{windSpeed};
+                  $winds .= ", ";
+                  if ( ref($period->{probabilityOfPrecipitation}) =~ /HASH/ ) {
+                     my $precipChance = $period->{probabilityOfPrecipitation}->{value};
+                        $precipChance ||= 0;
+                     push(@{$precips}, $precipChance);
+                  } else {
+                     push(@{$precips}, "N");
+                  }
                }
             }
          }
-         my $str;
+         my $tmpstr;
+         my $precipstr;
          for (my $i=0; $i<=4; $i++) {
-            $str .= $temps->[$i] . ", ";
+            $tmpstr .= $temps->[$i] . ", ";
+            $precipstr .= $precips->[$i] . ", ";
          }
-         $str =~ s/,\s*$//g;
+         $tmpstr    =~ s/,\s*$//g;
+         $precipstr =~ s/,\s*$//g;
+         $winds     =~ s/,\s*$//g;
 
-         return( $str );
+         $WD->{winds} = {
+            name => "winds",
+            url => "weather",
+            utime => $self->{now},
+            res => $winds,
+            ts => $self->{dtR}
+         }; # winds
+
+         $WD->{wind} = {
+            name => "wind",
+            url => "weather",
+            utime => $self->{now},
+            res => $wind,
+            ts => $self->{dtR}
+         }; # winds
+
+         $WD->{forecastShort} = {
+            name => "forecastShort",
+            url => "weather",
+            utime => $self->{now},
+            res => $forecastShort,
+            ts => $self->{dtR}
+         }; # forecastShort
+
+         $WD->{forecast} = {
+            name => "forecast",
+            url => "weather",
+            utime => $self->{now},
+            res => $forecast,
+            ts => $self->{dtR}
+         }; # forecastShort
+
+         $WD->{temp} = {
+            name => "temp",
+            url => "weather",
+            utime => $self->{now},
+            res => $temp,
+            ts => $self->{dtR}
+         }; # temps 
+
+         $WD->{temps} = {
+            name => "temps",
+            url => "weather",
+            utime => $self->{now},
+            res => $tmpstr,
+            ts => $self->{dtR}
+         }; # temps 
+         
+         $WD->{precips} = {
+            name  => "precips",
+            url   => "weather",
+            utime => $self->{now},
+            res   => $precipstr,
+            ts    => $self->{dtR}
+         };
+         
+
+         return( $tmpstr );
 
       }
    }
@@ -194,6 +295,7 @@ sub update {
    $self->{now} = time();
    my $dtR = strftime "%Y-%m-%d %H:%M:%S", localtime;
 
+   # data->webdata =================================================
    foreach my $wdata ( @{ $self->{conf}->{webdata} } ) {
       my $name   = $wdata->{name};
       my $table  = $wdata->{table};
@@ -203,11 +305,12 @@ sub update {
       my $timefrom = $self->{now} - $maxage;
       my $resq = 0;
 
-
+      # Cache Check 0 ---------------------------------------------------
       if ( $self->{data}->{webdata}->{$name}->{utime} >= $timefrom ) {
          $self->log("msg", "Current: $name");
 
       } else {
+         # DB get ---------------------------------------------------
          my $tdiff = $self->{now} - $self->{data}->{webdata}->{$name}->{utime};
          $self->log("msg", "Stale, DB fetch $name :: "
             . "rtime[" . $self->{data}->{webdata}->{$name}->{utime} . "],"
@@ -241,8 +344,9 @@ sub update {
             $resq++;
          }
 
-      }
+      } # DB get ---------------------------------------------------
 
+      # LWP get / Cache Check 1 ------------------------------------
       if ( $self->{data}->{webdata}->{$name}->{utime} <= $timefrom ) {
          $self->log("msg", "Fetching: $name, $url");
          my $fdata = get($url);
@@ -257,9 +361,9 @@ sub update {
          };
 
          $STHi->execute($name, $url, $self->{now}, $fdata, $dtR);
-      }
+      } # LWP get / Cache Check 1 ------------------------------------
 
-   }
+   } # data->webdata =================================================
    
    
    return 1;
@@ -305,8 +409,16 @@ sub log {
    return 1;
 };
 
-my $k = Kumo::Sys2024->new();
-$k->update();
+if ( $ENV{DEBUG} ) {
+   my $k = Kumo::Sys2024->new();
+   $k->update();
+   $k->getTenki();
+   $k->getAQI();
+   my $WD   = $k->{data}->{webdata};
+   use Data::Dumper; print Dumper([ $WD ]) . "\n";
+   use Data::Dumper; print Dumper([ $k->getX("precips"), $k->getX("wind"), $k->getX("temp"), $k->getX("forecastShort"), $k->getX("forecast") ]) . "\n";
+   
+};
 
 
 1;
