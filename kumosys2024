@@ -37,8 +37,7 @@ use lib 'lib';
 use Kumo::Sys2024;
 use POSIX qw(strftime);
 
-my $kumosys = Kumo::Sys2024->new();
-
+my $kumosys = Kumo::Sys2024->new('Q'=>'Q');
 
 get '/' => sub ($c) {
    $c->render(text => 'OwO UwU OwO');
@@ -69,6 +68,16 @@ get '/aqi' => sub($c) {
 get '/test' => sub($c) {
   $c->render(text=>"hewwo");
 };
+
+get '/get' => sub($c) {
+  if ( $c->param('X') ) { 
+    $kumosys->log("msg", "X:" . $c->param('X'));
+    $c->render(text=> $kumosys->getX( $c->param('X') ) );
+  } else {
+    $c->render(text=> "UwU" );
+  }
+};
+
 
 get '/update' => sub($c) {
    $kumosys->log("msg", "update triggered... :3");
