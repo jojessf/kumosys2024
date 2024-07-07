@@ -135,7 +135,7 @@ sub getX {
       $val = $self->{data}->{webdata}->{$key}->{res};
    }
    
-   return($val) if $val;
+   return($val) if defined($val);
    
    return "UwU";
 }
@@ -158,7 +158,7 @@ sub getTenki {
          $hash = $self->{json}->decode( $raw );
          $self->log("msg", "tenki ~ " . length($raw) . "bytes..." );
 
-         my ( $temp, $temps, $precips, $winds, $forecast, $forecastShort, $winds, $wind );
+         my ( $temp, $temps, $precip, $precips, $winds, $forecast, $forecastShort, $winds, $wind );
          if ( ref($hash->{properties}) =~ /HASH/ ) {
             if ( ref($hash->{properties}->{periods}) =~ /ARRAY/ ) {
                
@@ -170,7 +170,12 @@ sub getTenki {
                $wind      = $hash->{properties}->{periods}->[0]->{windDirection};
                $wind     .= " ";
                $wind     .= $hash->{properties}->{periods}->[0]->{windSpeed};
-               
+
+               if ( ref($hash->{properties}->{periods}->[0]->{probabilityOfPrecipitation}) =~ /HASH/ ) {
+                  my $precipChance = $hash->{properties}->{periods}->[0]->{probabilityOfPrecipitation}->{value};
+                  $precipChance ||= 0;
+                  $precip = $precipChance;
+               }
                
                foreach my $period ( @{ $hash->{properties}->{periods} } ) {
                   push(@{$temps}, $period->{temperature});
@@ -204,6 +209,7 @@ sub getTenki {
          $self->insertExt("weather", "temp", $temp);
          $self->insertExt("weather", "temps", $tmpstr);
          $self->insertExt("weather", "precips", $precipstr);
+         $self->insertExt("weather", "precip", $precip);
 
          return( $tmpstr );
 
@@ -396,6 +402,7 @@ if ( $ENV{DEBUG} ) {
    my $WD   = $k->{data}->{webdata};
    use Data::Dumper; print Dumper([ $WD ]) . "\n";
    use Data::Dumper; print Dumper([ $k->getX("precips"), $k->getX("wind"), $k->getX("temp"), $k->getX("forecastShort"), $k->getX("forecast") ]) . "\n";
+   use Data::Dumper; print Dumper([ $k->getX("precip") ]) . "\n";
 };
 
 
