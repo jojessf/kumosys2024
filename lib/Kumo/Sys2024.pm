@@ -30,8 +30,11 @@
 # =========================================================================== #
 package Kumo::Sys2024;
 
+use strict;
 use Data::Dumper;
+use LWP::Simple;
 use JSON;
+use DBI;
 
 # ----------------------------------------------------------------- #
 sub new {
@@ -47,20 +50,71 @@ sub new {
          'cred' => 'kumosys.cred',
          'conf' => 'kumosys.conf',
       },
+      data      => {
+
+      },
       cred    => {},
       conf    => {},
+      dbh     => undef,
+      now     => time,
    };
    
    bless($self, $class);
-   
+
    $self->startup();
-   
-   $self->update();
+   $self->dbinit();
+   #$self->update();
    
    return $self;
 };
 
 # ----------------------------------------------------------------- #
+
+# ----------------------------------------------------------------- #
+
+sub dbinit { 
+   my $self = shift;
+   
+   my $hostname = $self->{cred}->{hostname};
+   my $database = $self->{cred}->{database};
+   my $username = $self->{cred}->{username};
+   my $password = $self->{cred}->{password};
+   my $table = $self->{cred}->{table};
+   my $port = $self->{cred}->{port};
+   
+   my $dsn = "DBI:mysql:database=$database;host=$hostname;port=$port";
+   my $dbh = DBI->connect($dsn, $username, $password);
+   $self->{dbh} = $dbh;
+
+   # ----------------------------------------------------------------------#
+   my $DBFields = "name,url,utime,res";
+   my $ReValues;
+   my $DBValues = "VALUES";
+   my $DBIVal = 'VALUES (';
+   my $DBFieldsI = ("(");
+
+   foreach my $fi (split(",", $DBFields )) {
+      $DBIVal     .= "?,";
+      $ReValues  .= "`$fi`=VALUES(`$fi`),";
+      $DBFieldsI .= "`$fi`,";
+   }
+   chop($DBFieldsI);
+   chop($DBIVal);
+   chop($ReValues);
+   $DBIVal.= ")";
+   $DBFieldsI .= ")";
+
+   # Append a (?,?) for each one of our keypairs.
+   #$DBValues .= join(',',map { $DBIVal } keys(%data));
+
+   my $DBq = "INSERT INTO $table $DBFieldsI $DBIVal ON DUPLICATE KEY UPDATE $ReValues;";
+   $self->log( "DB", $DBq );
+   $self->{insert_webdata} = $dbh->prepare($DBq);
+   # ----------------------------------------------------------------------#
+
+   return $dbh;
+} 
+
 sub startup {
    my $self = shift;
    # load $self->{cred}, ->{conf}; 
@@ -76,10 +130,71 @@ sub startup {
 # ----------------------------------------------------------------- #
 sub update {
    my $self = shift;
-   
+   my $dbh = $self->{dbh};
+   my $STHi = $self->{insert_webdata};
+   $self->{now} = time();
+
    foreach my $wdata ( @{ $self->{conf}->{webdata} } ) {
-      my $source = $wdata->{name};
-      $self->log("msg", "fetch $source");
+      my $name   = $wdata->{name};
+      my $table  = $wdata->{table};
+      my $url    = $wdata->{url};
+      my $maxage = $wdata->{maxage};
+         $maxage ||= 120;
+      my $timefrom = $self->{now} - $maxage;
+      my $resq = 0;
+
+
+      if ( $self->{data}->{webdata}->{$name}->{utime} >= $timefrom ) {
+         $self->log("msg", "Current: $name");
+
+      } else {
+         $self->log("msg", "Stale, DB fetch $name :: "
+            . "rtime[" . $self->{data}->{webdata}->{$name}->{utime} . "],"
+            . "now[". $self->{now} . "] ~" .  $timefrom
+         );
+
+         my $sQuery = "SELECT * from $table WHERE name=? AND utime > ? ORDER BY utime DESC";
+         my $sth = $dbh->prepare($sQuery);
+         my $values = [$name, $timefrom];
+         $self->log("msg", "DB: " . $sQuery . ":: " . join(",", @{$values}) );
+         $sth->execute(@{$values});
+
+         while (my $ref = $sth->fetchrow_hashref()) {
+            $self->log("msg", "Found a row: id = $ref->{'name'}, $ref->{'utime'}" );
+            $self->{data}->{webdata}->{ $ref->{name} } = {
+               name => $ref->{name},
+               url => $ref->{url},
+               utime => $ref->{utime},
+               res => $ref->{res},
+            };
+         
+            print Dumper([
+               $ref->{name},
+               $self->{data}->{webdata}->{ $ref->{name} }
+            ]) . "\n";
+
+
+            $resq++;
+         }
+
+      }
+
+      if ( $self->{data}->{webdata}->{$name}->{utime} <= $timefrom ) {
+         $self->log("msg", "Fetching: $name, $url");
+         my $fdata = get($url);
+         $self->log("msg", "Fetch got " . length($fdata) . " bytes...!");
+         
+
+         $self->{data}->{webdata}->{$name} = {
+            name => $name,
+            url => $url,
+            utime => $self->{now},
+            res => $fdata,
+         };
+
+         $STHi->execute($name, $url, $self->{now}, $fdata);
+      }
+
    }
    
    
@@ -99,7 +214,7 @@ sub jSlurp {
    open IF, "<" . $fil or do {
       $self->log("warn", "File Slurpaderp failure $fil . . .");
    };
-   $self->log("load", "$fkey / $fil");
+   $self->log("load", "$fil");
    
    while (<IF>) { $fistr .= $_ };
    close IF;
@@ -119,7 +234,7 @@ sub log {
    my $class = $self->{class};
    $lvl ||= "warn";
    
-   if ( $lvl =~ /warn|log|msg|error|load/i ) {
+   if ( $lvl =~ /warn|log|msg|error|load|info/i ) {
       print "[$class] <$lvl> $msg\n";
    }
    
@@ -127,7 +242,7 @@ sub log {
 };
 
 my $k = Kumo::Sys2024->new();
-
+$k->update();
 
 
 1;
