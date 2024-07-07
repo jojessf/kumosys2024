@@ -197,62 +197,13 @@ sub getTenki {
          $precipstr =~ s/,\s*$//g;
          $winds     =~ s/,\s*$//g;
 
-         $WD->{winds} = {
-            name => "winds",
-            url => "weather",
-            utime => $self->{now},
-            res => $winds,
-            ts => $self->{dtR}
-         }; # winds
-
-         $WD->{wind} = {
-            name => "wind",
-            url => "weather",
-            utime => $self->{now},
-            res => $wind,
-            ts => $self->{dtR}
-         }; # winds
-
-         $WD->{forecastShort} = {
-            name => "forecastShort",
-            url => "weather",
-            utime => $self->{now},
-            res => $forecastShort,
-            ts => $self->{dtR}
-         }; # forecastShort
-
-         $WD->{forecast} = {
-            name => "forecast",
-            url => "weather",
-            utime => $self->{now},
-            res => $forecast,
-            ts => $self->{dtR}
-         }; # forecastShort
-
-         $WD->{temp} = {
-            name => "temp",
-            url => "weather",
-            utime => $self->{now},
-            res => $temp,
-            ts => $self->{dtR}
-         }; # temps 
-
-         $WD->{temps} = {
-            name => "temps",
-            url => "weather",
-            utime => $self->{now},
-            res => $tmpstr,
-            ts => $self->{dtR}
-         }; # temps 
-         
-         $WD->{precips} = {
-            name  => "precips",
-            url   => "weather",
-            utime => $self->{now},
-            res   => $precipstr,
-            ts    => $self->{dtR}
-         };
-         
+         $self->insertExt("weather", "winds", $winds);
+         $self->insertExt("weather", "wind", $wind);
+         $self->insertExt("weather", "forecastShort", $forecastShort);
+         $self->insertExt("weather", "forecast", $forecast);
+         $self->insertExt("weather", "temp", $temp);
+         $self->insertExt("weather", "temps", $tmpstr);
+         $self->insertExt("weather", "precips", $precipstr);
 
          return( $tmpstr );
 
@@ -260,6 +211,34 @@ sub getTenki {
    }
    return "mystery weather o.o;";
 }
+
+sub insertExt {
+   my $self = shift;
+   my ( $url, $name, $res ) = @_;
+   my $WD = $self->{data}->{webdata};
+   my $STHi = $self->{insert_webdata};
+   $self->{now} = time();
+   $self->{dtR} = strftime "%Y-%m-%d %H:%M:%S", localtime;
+   
+   $STHi->execute(
+      $name, 
+      $url, 
+      $self->{now}, 
+      $res, 
+      $self->{dtR}
+   );
+   
+   $WD->{$name} = {
+      name  => $name,
+      url   => $url,
+      utime => $self->{now},
+      res   => $res,
+      ts    => $self->{dtR}
+   };
+   
+   return 1;
+}
+
 
 sub getAQI {
    my $self = shift;
@@ -417,7 +396,6 @@ if ( $ENV{DEBUG} ) {
    my $WD   = $k->{data}->{webdata};
    use Data::Dumper; print Dumper([ $WD ]) . "\n";
    use Data::Dumper; print Dumper([ $k->getX("precips"), $k->getX("wind"), $k->getX("temp"), $k->getX("forecastShort"), $k->getX("forecast") ]) . "\n";
-   
 };
 
 
