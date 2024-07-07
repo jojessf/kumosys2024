@@ -59,7 +59,11 @@ get '/jikan' => sub($c) {
 };
 
 get '/tenki' => sub($c) {
-  $c->render(text=>"wip tho");
+  $c->render(text=> $kumosys->getTenki() )
+};
+
+get '/tenki2' => sub($c) {
+  $c->render(text=> $kumosys->getTenki2() )
 };
 
 get '/test' => sub($c) {
@@ -69,6 +73,10 @@ get '/test' => sub($c) {
 get '/update' => sub($c) {
    $kumosys->log("msg", "update triggered... :3");
    $kumosys->update();
+};
+
+get '/reload' => sub($c) {
+   $kumosys->startup();
 };
 
 # 
