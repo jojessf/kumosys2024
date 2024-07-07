@@ -62,8 +62,8 @@ get '/tenki' => sub($c) {
   $c->render(text=> $kumosys->getTenki() )
 };
 
-get '/tenki2' => sub($c) {
-  $c->render(text=> $kumosys->getTenki2() )
+get '/aqi' => sub($c) {
+  $c->render(text=> $kumosys->getAQI() )
 };
 
 get '/test' => sub($c) {
@@ -73,6 +73,7 @@ get '/test' => sub($c) {
 get '/update' => sub($c) {
    $kumosys->log("msg", "update triggered... :3");
    $kumosys->update();
+   $c->render(text=>"okies, cutie~ :3");
 };
 
 get '/reload' => sub($c) {
