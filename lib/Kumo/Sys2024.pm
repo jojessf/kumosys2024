@@ -124,44 +124,67 @@ sub startup {
 };
 
 # ----------------------------------------------------------------- #
+
 sub getTenki {
-   my $self = shift;
-   my $WD = $self->{data}->{webdata};
-   my $raw; 
-   if ( ref($WD->{tenki}) =~ /HASH/ ) {
-      if ( $WD->{tenki}->{res} ) {
-
-      }
-   }
-   if ( $raw ) {
-
-   } else {
-      return "wippin it";
-   }
-}
-
-sub getTenki2 {
    my $self = shift;
    my $WD = $self->{data}->{webdata};
    my $raw;
    my $hash; 
    
+   $self->log("msg", "tenki? " . ref( $WD->{weather}) ."" );
+
    if ( ref($WD->{weather}) =~ /HASH/ ) {
       if ( $WD->{weather}->{res} ) {
          $raw = $WD->{weather}->{res};
          $hash = $self->{json}->decode( $raw );
-         $self->log("msg", "processing " . length($raw) . "bytes..." );
+         $self->log("msg", "tenki ~ " . length($raw) . "bytes..." );
 
-         return Dumper([ $hash ]);
+         my $temps;
+         if ( ref($hash->{properties}) =~ /HASH/ ) {
+            if ( ref($hash->{properties}->{periods}) =~ /ARRAY/ ) {
+               foreach my $period ( @{ $hash->{properties}->{periods} } ) {
+                  push(@{$temps}, $period->{temperature});
+               }
+            }
+         }
+         my $str;
+         for (my $i=0; $i<=4; $i++) {
+            $str .= $temps->[$i] . ", ";
+         }
+         $str =~ s/,\s*$//g;
+
+         return( $str );
 
       }
    }
-   if ( $raw ) {
-
-   } else {
-      return "wippin it";
-   }
+   return "mystery weather o.o;";
 }
+
+sub getAQI {
+   my $self = shift;
+   my $WD = $self->{data}->{webdata};
+   my $raw;
+   my $hash; 
+   
+   $self->log("msg", "aqi ? " . ref( $WD->{aqi}) ."" );
+
+   if ( ref($WD->{aqi}) =~ /HASH/ ) {
+      if ( $WD->{aqi}->{res} ) {
+         $raw = $WD->{aqi}->{res};
+         $hash = $self->{json}->decode( $raw );
+         $self->log("msg", "aqi ~ " . length($raw) . "bytes..." );
+
+         if ( ref($hash->{data}) =~ /HASH/ ) {
+            if ( $hash->{data}->{aqi} ) {
+               $self->log("msg", "aqi ~ " . $hash->{data}->{aqi} . "bytes..." );
+               return $hash->{data}->{aqi};
+            }
+         }
+      }
+   }
+   return "idk ;w;";
+}
+
 
 # ----------------------------------------------------------------- #
 sub update {
@@ -199,7 +222,10 @@ sub update {
 
          while (my $ref = $sth->fetchrow_hashref()) {
             $self->log("msg", "Found current DB entry: id = $ref->{'name'}, $ref->{'utime'}" );
-            $self->{data}->{webdata}->{ $name } = {
+
+            #print Dumper([ $ref->{utime} ]) . "\n";
+
+            $self->{data}->{webdata}->{ $ref->{name} } = {
                name => $ref->{name},
                url => $ref->{url},
                utime => $ref->{utime},
@@ -207,10 +233,10 @@ sub update {
                ts => $ref->{ts}
             };
          
-            # print Dumper([
-            #    $ref->{name},
-            #    $self->{data}->{webdata}->{ $ref->{name} }
-            # ]) . "\n";
+            print Dumper([
+               $ref->{name},
+               $self->{data}->{webdata}->{ $ref->{name} }->{utime}
+            ]) . "\n";
 
             $resq++;
          }
