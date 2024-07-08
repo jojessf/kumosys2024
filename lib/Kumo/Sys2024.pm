@@ -263,6 +263,8 @@ sub getAQI {
          if ( ref($hash->{data}) =~ /HASH/ ) {
             if ( $hash->{data}->{aqi} ) {
                $self->log("msg", "aqi ~ " . $hash->{data}->{aqi} . "bytes..." );
+               
+               $self->insertExt("weather", "aqipm25", $hash->{data}->{aqi});
                return $hash->{data}->{aqi};
             }
          }
