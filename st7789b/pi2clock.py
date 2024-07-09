@@ -119,7 +119,7 @@ try:
             forecastShort = getX("forecastShort") # get short form forecast - e.g.: "Partly Cloudy"
             forecastShort = forecastShort.lower() # lc
             forecastShort = forecastShort.replace(" ", "")        # strip spaces - e.g.: "partlycloudy"
-            print("forecastShort:" + forecastShort)
+            # print("forecastShort:" + forecastShort)
             # if forecastShort != forecastShortLast:
             #    try:
             #        print("wIco load:"+"img/weather/"+forecastShort+".jpg")
@@ -143,21 +143,20 @@ try:
             
             y=0            # starting y 
             yInterval=30   # row height in pixels
-            xWid=40        # row width in characters
+            xWid=39        # row width in characters
             draw = ImageDraw.Draw(image2)
             forecastStr = getX("forecast")
             forecastLins = stringWrapToList(xWid,forecastStr)
             forecastLins.append("")
             forecastLins.append(forecastShort)
             for lin in forecastLins:
-               y=y+yInterval
                if y <= disp.height - yInterval:
                   draw.text((0, y), lin, fill = "MAGENTA", font=Font3)
+               y=y+yInterval
             
             disp.ShowImage(image2)
-
-            
-            time.sleep(sleepyTime)
+            for i in range(0,3,1):
+               time.sleep(sleepyTime)
             
             
             # - CYCLE_OUT / BIG CLOCK ---------------------------------------------- #
@@ -209,6 +208,7 @@ try:
         tenkiStr = getR("tenki")
         aqiNull  = getR("aqi")
         aqiStr   = getX("aqipm25")
+        tempNow  = getX("tempnow")
         tempSoon = getX("temp")
         precips  = getX("precips")
         precip   = getX("precip")
@@ -225,7 +225,7 @@ try:
         
         
         draw.text((  0, 78), u"温", fill = "ORANGE", font=Font3)
-        draw.text((  0, 90), tempSoon, fill = "ORANGE", font=Font5)
+        draw.text((  0, 90), tempNow, fill = "ORANGE", font=Font5)
         
         draw.text((125, 78), u"空", fill = "PURPLE", font=Font3)
         draw.text((125, 90), aqiStr, fill = "MAGENTA", font=Font5)
