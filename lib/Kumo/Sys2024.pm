@@ -152,6 +152,58 @@ sub getTenki {
    
    $self->log("msg", "tenki? " . ref( $WD->{weather}) ."" );
 
+   my $weathernow;
+   if ( ref($WD->{weathernow}) =~ /HASH/ ) {
+      if ( $WD->{weathernow}->{res} ) {
+         $raw = $WD->{weathernow}->{res};
+         $hash = $self->{json}->decode( $raw );
+         if ( ref($hash->{properties}->{temperature}) =~ /HASH/ ) {
+            
+            # tempnow 
+            $weathernow->{tempnow} = $hash->{properties}->{temperature}->{value};
+            if ( $hash->{properties}->{temperature}->{unitCode} =~ /degC/i ) {
+               $weathernow->{tempnow} = ( $weathernow->{tempnow} * 9 / 5 ) + 32;
+               $weathernow->{tempnow} = int($weathernow->{tempnow});
+            }
+            # windnow
+            $weathernow->{windnow} = $hash->{properties}->{windSpeed}->{value};
+            if ( $hash->{properties}->{windSpeed}->{unitCode} =~ /km_h/i ) {
+               $weathernow->{windnow} *= 0.621371;
+            }
+            
+            # dewpoint
+            $weathernow->{dewpoint} = $hash->{properties}->{dewpoint}->{value};
+            if ( $hash->{properties}->{dewpoint}->{unitCode} =~ /degC/i ) {
+               $weathernow->{dewpoint} = ( $weathernow->{dewpoint} * 9 / 5 ) + 32;
+            }
+            # pressure
+            $weathernow->{pressure} = $hash->{properties}->{barometricPressure}->{value};
+            if ( $hash->{properties}->{barometricPressure}->{unitCode} =~ /Unit:Pa/i ) {
+               $weathernow->{pressure} /= 1000;
+            }
+            # visibility
+            $weathernow->{visibility} = $hash->{properties}->{visibility}->{value};
+            if ( $hash->{properties}->{visibility}->{unitCode} =~ /Unit:m$/i ) {
+               $weathernow->{visibility} /= 1000;
+               $weathernow->{visibility} *= 0.621371;
+            }
+            
+            # humidity             
+            $weathernow->{humidity} = $hash->{properties}->{relativeHumidity}->{value};
+          
+            # forecastShort
+            $weathernow->{forecastShort} = $hash->{properties}->{textDescription};
+          
+         }
+      }
+   }
+   
+   foreach my $key (keys %{$weathernow}) {
+      print ">OwO>" . $key . "\t" . $weathernow->{$key} . "\n" if $ENV{DEBUG} =~ /weathernow/i;
+      $self->insertExt("weather", $key, $weathernow->{$key}) if $weathernow->{$key};
+   }
+   
+   
    if ( ref($WD->{weather}) =~ /HASH/ ) {
       if ( $WD->{weather}->{res} ) {
          $raw = $WD->{weather}->{res};
@@ -163,7 +215,7 @@ sub getTenki {
             if ( ref($hash->{properties}->{periods}) =~ /ARRAY/ ) {
                
                $temp      = $hash->{properties}->{periods}->[0]->{temperature}; # 89
-               $forecastShort = $hash->{properties}->{periods}->[0]->{shortForecast}; # "Sunny"
+               # $forecastShort = $hash->{properties}->{periods}->[0]->{shortForecast}; # "Sunny"
                $forecast  = $hash->{properties}->{periods}->[0]->{name}; # "This Afternoon"
                $forecast .= ": ";
                $forecast .= $hash->{properties}->{periods}->[0]->{detailedForecast}; # "Sunny, with a high near ..."
@@ -204,7 +256,7 @@ sub getTenki {
 
          $self->insertExt("weather", "winds", $winds);
          $self->insertExt("weather", "wind", $wind);
-         $self->insertExt("weather", "forecastShort", $forecastShort);
+         # $self->insertExt("weather", "forecastShort", $forecastShort);
          $self->insertExt("weather", "forecast", $forecast);
          $self->insertExt("weather", "temp", $temp);
          $self->insertExt("weather", "temps", $tmpstr);
@@ -293,7 +345,10 @@ sub update {
       my $resq = 0;
 
       # Cache Check 0 ---------------------------------------------------
-      if ( $self->{data}->{webdata}->{$name}->{utime} >= $timefrom ) {
+      if ( 
+         ( $self->{data}->{webdata}->{$name}->{utime} >= $timefrom ) &&
+         ( $self->{data}->{webdata}->{$name}->{res} )
+      ) {
          $self->log("msg", "Current: $name");
 
       } else {
@@ -313,7 +368,7 @@ sub update {
          while (my $ref = $sth->fetchrow_hashref()) {
             $self->log("msg", "Found current DB entry: id = $ref->{'name'}, $ref->{'utime'}" );
 
-            #print Dumper([ $ref->{utime} ]) . "\n";
+            print Dumper([ $self->{json}->decode( $ref->{res} ) ]) . "\n";
 
             $self->{data}->{webdata}->{ $ref->{name} } = {
                name => $ref->{name},
@@ -337,6 +392,8 @@ sub update {
       if ( $self->{data}->{webdata}->{$name}->{utime} <= $timefrom ) {
          $self->log("msg", "Fetching: $name, $url");
          my $fdata = get($url);
+         
+         use Data::Dumper; print Dumper([ $fdata ]) . "\n";
          $self->log("msg", "Fetch got " . length($fdata) . " bytes...!");
          
          $self->{data}->{webdata}->{$name} = {
@@ -398,6 +455,7 @@ sub log {
 
 if ( $ENV{DEBUG} ) {
    my $k = Kumo::Sys2024->new();
+   $k->startup();
    $k->update();
    $k->getTenki();
    $k->getAQI();
