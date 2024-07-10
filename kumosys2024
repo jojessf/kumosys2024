@@ -71,7 +71,7 @@ get '/test' => sub($c) {
 
 get '/get' => sub($c) {
   if ( $c->param('X') ) { 
-    $kumosys->log("msg", "X:" . $c->param('X'));
+    # $kumosys->log("msg", "X:" . $c->param('X'));
     $c->render(text=> $kumosys->getX( $c->param('X') ) );
   } else {
     $c->render(text=> "UwU" );

@@ -45,7 +45,7 @@ sub new {
       class   => $class,
       json    => JSON->new->allow_nonref,
       outFiles   => {
-         'log'  >  'kumosys.log'
+         'log'  =>  'kumosys.log'
       },
       inFiles   => {
          'cred' => 'kumosys.cred',
@@ -56,6 +56,8 @@ sub new {
       },
       cred    => {},
       conf    => {},
+      lognow  => 0,  # toggle to trigger recording to secondary table
+      lastlog => 0,
       dbh     => undef,
       now     => time,
    };
@@ -80,7 +82,8 @@ sub dbinit {
    my $database = $self->{cred}->{database};
    my $username = $self->{cred}->{username};
    my $password = $self->{cred}->{password};
-   my $table = $self->{cred}->{table};
+   my $table    = $self->{conf}->{table};
+   my $tableLog = $self->{conf}->{tableLog};
    my $port = $self->{cred}->{port};
    
    my $dsn = "DBI:mysql:database=$database;host=$hostname;port=$port";
@@ -105,8 +108,10 @@ sub dbinit {
    $DBIVal.= ")";
    $DBFieldsI .= ")";
    my $DBq = "INSERT INTO $table $DBFieldsI $DBIVal ON DUPLICATE KEY UPDATE $ReValues;";
+   my $DBqLog = "INSERT INTO $tableLog $DBFieldsI $DBIVal;";
    $self->log( "DB", $DBq );
    $self->{insert_webdata} = $dbh->prepare($DBq);
+   $self->{insert_webdatalog} = $dbh->prepare($DBqLog);
    # ----------------------------------------------------------------------#
 
    return $dbh;
@@ -147,7 +152,7 @@ sub getTenki {
    my $WD = $self->{data}->{webdata};
    my $raw;
    my $hash; 
-   $self->{now} = time();
+   $self->{now} = time;
    $self->{dtR} = strftime "%Y-%m-%d %H:%M:%S", localtime;
    
    $self->log("msg", "tenki? " . ref( $WD->{weather}) ."" );
@@ -169,12 +174,13 @@ sub getTenki {
             $weathernow->{windnow} = $hash->{properties}->{windSpeed}->{value};
             if ( $hash->{properties}->{windSpeed}->{unitCode} =~ /km_h/i ) {
                $weathernow->{windnow} *= 0.621371;
+               $weathernow->{windnow} = int($weathernow->{windnow});
             }
             
             # dewpoint
             $weathernow->{dewpoint} = $hash->{properties}->{dewpoint}->{value};
             if ( $hash->{properties}->{dewpoint}->{unitCode} =~ /degC/i ) {
-               $weathernow->{dewpoint} = ( $weathernow->{dewpoint} * 9 / 5 ) + 32;
+               $weathernow->{dewpoint} = int( ( $weathernow->{dewpoint} * 9 / 5 ) + 32 );
             }
             # pressure
             $weathernow->{pressure} = $hash->{properties}->{barometricPressure}->{value};
@@ -186,13 +192,15 @@ sub getTenki {
             if ( $hash->{properties}->{visibility}->{unitCode} =~ /Unit:m$/i ) {
                $weathernow->{visibility} /= 1000;
                $weathernow->{visibility} *= 0.621371;
+               $weathernow->{visibility} = int($weathernow->{visibility});
             }
             
             # humidity             
-            $weathernow->{humidity} = $hash->{properties}->{relativeHumidity}->{value};
+            $weathernow->{humidity} = int($hash->{properties}->{relativeHumidity}->{value});
           
             # forecastShort
-            $weathernow->{forecastShort} = $hash->{properties}->{textDescription};
+            $weathernow->{conditions} = $hash->{properties}->{textDescription}; 
+            # $weathernow->{forecastShort} = $hash->{properties}->{textDescription}; 
           
          }
       }
@@ -200,7 +208,16 @@ sub getTenki {
    
    foreach my $key (keys %{$weathernow}) {
       print ">OwO>" . $key . "\t" . $weathernow->{$key} . "\n" if $ENV{DEBUG} =~ /weathernow/i;
-      $self->insertExt("weather", $key, $weathernow->{$key}) if $weathernow->{$key};
+      
+      
+      $WD->{$key}->{utime} ||= 0;
+      # $self->log("msg", "UT2 ~ " . $key ." ~ "  . $WD->{$key}->{utime}); # 
+      #if ( $WD->{$key}->{utime} < $WD->{'weathernow'}->{utime} ) {
+         $self->insertDB("weather", $key, $weathernow->{$key}) if $weathernow->{$key};
+         # $self->log("msg", "UT2 ~ " . $key ." I " ); # 
+      #}
+      $self->insertTb("weather", $key, $weathernow->{$key}) if $weathernow->{$key};
+      # $self->log("msg", "UT2 ~ " . $key ." ~ "  . $WD->{$key}->{utime}); #
    }
    
    
@@ -215,7 +232,7 @@ sub getTenki {
             if ( ref($hash->{properties}->{periods}) =~ /ARRAY/ ) {
                
                $temp      = $hash->{properties}->{periods}->[0]->{temperature}; # 89
-               # $forecastShort = $hash->{properties}->{periods}->[0]->{shortForecast}; # "Sunny"
+               $forecastShort = $hash->{properties}->{periods}->[0]->{shortForecast}; # "Sunny"
                $forecast  = $hash->{properties}->{periods}->[0]->{name}; # "This Afternoon"
                $forecast .= ": ";
                $forecast .= $hash->{properties}->{periods}->[0]->{detailedForecast}; # "Sunny, with a high near ..."
@@ -254,14 +271,32 @@ sub getTenki {
          $precipstr =~ s/,\s*$//g;
          $winds     =~ s/,\s*$//g;
 
-         $self->insertExt("weather", "winds", $winds);
-         $self->insertExt("weather", "wind", $wind);
-         # $self->insertExt("weather", "forecastShort", $forecastShort);
-         $self->insertExt("weather", "forecast", $forecast);
-         $self->insertExt("weather", "temp", $temp);
-         $self->insertExt("weather", "temps", $tmpstr);
-         $self->insertExt("weather", "precips", $precipstr);
-         $self->insertExt("weather", "precip", $precip);
+         $self->insertTb("weather", "winds", $winds);
+         $self->insertTb("weather", "wind", $wind);
+         $self->insertTb("weather", "forecastShort", $forecastShort);
+         $self->insertTb("weather", "forecast", $forecast);
+         $self->insertTb("weather", "temp", $temp);
+         $self->insertTb("weather", "temps", $tmpstr);
+         $self->insertTb("weather", "precips", $precipstr);
+         $self->insertTb("weather", "precip", $precip);
+
+         $WD->{precip}->{utime} ||= 0;
+         
+         
+         #$self->log("msg", "precip/weather utime " . 
+         #   $WD->{precip}->{utime} .  "\t" . $WD->{'weather'}->{utime} .
+         #"" );
+         
+         # if ( $WD->{precip}->{utime} < $WD->{'weather'}->{utime} ) {
+            $self->insertDB("weather", "winds", $winds);
+            $self->insertDB("weather", "wind", $wind);
+            $self->insertDB("weather", "forecastShort", $forecastShort);
+            $self->insertDB("weather", "forecast", $forecast);
+            $self->insertDB("weather", "temp", $temp);
+            $self->insertDB("weather", "temps", $tmpstr);
+            $self->insertDB("weather", "precips", $precipstr);
+            $self->insertDB("weather", "precip", $precip);
+         # }
 
          return( $tmpstr );
 
@@ -270,11 +305,33 @@ sub getTenki {
    return "mystery weather o.o;";
 }
 
-sub insertExt {
+sub insertTb {
    my $self = shift;
    my ( $url, $name, $res ) = @_;
    my $WD = $self->{data}->{webdata};
    my $STHi = $self->{insert_webdata};
+   my $STHiLog = $self->{insert_webdatalog};
+   $self->{now} = time();
+   $self->{dtR} = strftime "%Y-%m-%d %H:%M:%S", localtime;
+
+   $WD->{$name} = {
+      name  => $name,
+      url   => $url,
+      utime => $self->{now},
+      res   => $res,
+      ts    => $self->{dtR}
+   };
+
+   return 1;
+}
+
+
+sub insertDB {
+   my $self = shift;
+   my ( $url, $name, $res ) = @_;
+   my $WD = $self->{data}->{webdata};
+   my $STHi = $self->{insert_webdata};
+   my $STHiLog = $self->{insert_webdatalog};
    $self->{now} = time();
    $self->{dtR} = strftime "%Y-%m-%d %H:%M:%S", localtime;
    
@@ -285,18 +342,19 @@ sub insertExt {
       $res, 
       $self->{dtR}
    );
-   
-   $WD->{$name} = {
-      name  => $name,
-      url   => $url,
-      utime => $self->{now},
-      res   => $res,
-      ts    => $self->{dtR}
+
+   if ( $self->{lognow} == 1 ) {
+      $STHiLog->execute(
+         $name, 
+         $url, 
+         $self->{now}, 
+         $res, 
+         $self->{dtR}
+      );
    };
    
    return 1;
 }
-
 
 sub getAQI {
    my $self = shift;
@@ -316,7 +374,8 @@ sub getAQI {
             if ( $hash->{data}->{aqi} ) {
                $self->log("msg", "aqi ~ " . $hash->{data}->{aqi} . "bytes..." );
                
-               $self->insertExt("weather", "aqipm25", $hash->{data}->{aqi});
+               $self->insertDB("weather", "aqipm25", $hash->{data}->{aqi});
+               $self->insertTb("weather", "aqipm25", $hash->{data}->{aqi});
                return $hash->{data}->{aqi};
             }
          }
@@ -325,14 +384,47 @@ sub getAQI {
    return "idk ;w;";
 }
 
+sub lastlog { 
+   my $self = shift;
+   my $dbh = $self->{dbh};
+   my $STHi = $self->{insert_webdata};
+   $self->{now} = time;
+   my $dtR = strftime "%Y-%m-%d %H:%M:%S", localtime;
+   my $WD   = $self->{data}->{webdata};
+   my $lastlogage = $self->{now} - $self->{lastlog};
+   
+   if (scalar(keys %{$WD}) >=1) {
+      if ( $lastlogage > $self->{conf}->{loginterval} ) {
+         $self->log("dblog", "triggering log routine...  " . $self->{now} .",\t". $self->{lastlog} );
+         $self->{lastlog}  = time;
+         $self->{lognow} = 1;
+         $self->insertDB("weather", "lastlog", $self->{lastlog});
+         foreach my $key (keys %{$WD}) {
+            my $val = $WD->{$key}->{res};
+            if ( length($val) <= $self->{conf}->{logstrmaxlen} ) {
+               $self->log("dblog", "hewwo $key ~ $val\n");
+               $self->log("self", Dumper([ $self ]) );
+               $self->insertDB("weatherlog", $key, $val);
+            }
+         }
+         $self->{lognow} = 0;
+      } else {
+         $self->log("dblog", "skippin' log routine...  " . $self->{now} .",\t". $self->{lastlog} );
+         $self->{lognow} = 0;
+      }
+   }
+}
+
 
 # ----------------------------------------------------------------- #
 sub update {
    my $self = shift;
    my $dbh = $self->{dbh};
    my $STHi = $self->{insert_webdata};
-   $self->{now} = time();
+   $self->{now} = time;
    my $dtR = strftime "%Y-%m-%d %H:%M:%S", localtime;
+
+   $self->lastlog();
 
    # data->webdata =================================================
    foreach my $wdata ( @{ $self->{conf}->{webdata} } ) {
@@ -362,13 +454,11 @@ sub update {
          my $sQuery = "SELECT * from $table WHERE name=? AND utime > ? ORDER BY utime DESC";
          my $sth = $dbh->prepare($sQuery);
          my $values = [$name, $timefrom];
-         $self->log("DB", "DB: " . $sQuery . ":: " . join(",", @{$values}) );
+         $self->log("DB", "DB: " . $sQuery . ":: " . join(",", @{$values}) ) if $ENV{DEBUG};
          $sth->execute(@{$values});
 
          while (my $ref = $sth->fetchrow_hashref()) {
             $self->log("msg", "Found current DB entry: id = $ref->{'name'}, $ref->{'utime'}" );
-
-            print Dumper([ $self->{json}->decode( $ref->{res} ) ]) . "\n";
 
             $self->{data}->{webdata}->{ $ref->{name} } = {
                name => $ref->{name},
@@ -377,11 +467,7 @@ sub update {
                res => $ref->{res},
                ts => $ref->{ts}
             };
-         
-            print Dumper([
-               $ref->{name},
-               $self->{data}->{webdata}->{ $ref->{name} }->{utime}
-            ]) . "\n";
+       
 
             $resq++;
          }
@@ -393,7 +479,7 @@ sub update {
          $self->log("msg", "Fetching: $name, $url");
          my $fdata = get($url);
          
-         use Data::Dumper; print Dumper([ $fdata ]) . "\n";
+         # use Data::Dumper; print Dumper([ $fdata ]) . "\n";
          $self->log("msg", "Fetch got " . length($fdata) . " bytes...!");
          
          $self->{data}->{webdata}->{$name} = {
@@ -446,9 +532,15 @@ sub log {
    my $class = $self->{class};
    $lvl ||= "warn";
    
+   my $logit = "[$class] <$lvl> $msg";
    if ( $lvl =~ /warn|log|msg|error|load|info/i ) {
-      print "[$class] <$lvl> $msg\n";
+      print $logit . "\n";
    }
+   
+   open OF, ">>" . $self->{outFiles}->{log};
+      print OF localtime . "$logit\n";   
+   close OF;
+   
    
    return 1;
 };
@@ -460,9 +552,10 @@ if ( $ENV{DEBUG} ) {
    $k->getTenki();
    $k->getAQI();
    my $WD   = $k->{data}->{webdata};
-   use Data::Dumper; print Dumper([ $WD ]) . "\n";
-   use Data::Dumper; print Dumper([ $k->getX("precips"), $k->getX("wind"), $k->getX("temp"), $k->getX("forecastShort"), $k->getX("forecast") ]) . "\n";
-   use Data::Dumper; print Dumper([ $k->getX("precip") ]) . "\n";
+   # use Data::Dumper; print Dumper([ $WD ]) . "\n";
+   # use Data::Dumper; print Dumper([ $k->getX("precips"), $k->getX("wind"), $k->getX("temp"), $k->getX("forecastShort"), $k->getX("forecast") ]) . "\n";
+   # use Data::Dumper; print Dumper([ $k->getX("precip") ]) . "\n";
+   use Data::Dumper; print Dumper([ "Wnow", $k->getX("weathernow") ]) . "\n";
 };
 
 
