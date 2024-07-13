@@ -3,12 +3,12 @@
 
 0. have WSL v2 debian 12, git, etc
 ```
-sudo apt install git xxd dhex git cmake gcc-arm-none-eabi libnewlib-arm-none-eabi libstdc++-arm-none-eabi-newlib build-essential pkg-config libusb-1.0-0-dev python3.11-venv
+sudo apt install git xxd dhex git cmake gcc-arm-none-eabi libnewlib-arm-none-eabi libstdc++-arm-none-eabi-newlib build-essential pkg-config libusb-1.0-0-dev python3.11-venv usbutils
 ```
 
-1. get usbipd [ cmd.exe, administrator ]
-[Install usbipd: https://github.com/dorssel/usbipd-win/releases](https://github.com/dorssel/usbipd-win/releases) \
-[More info: https://learn.microsoft.com/en-us/windows/wsl/connect-usb](https://learn.microsoft.com/en-us/windows/wsl/connect-usb) \
+1. get usbipd [ cmd.exe, administrator ] \
+[Install usbipd: https://github.com/dorssel/usbipd-win/releases ](https://github.com/dorssel/usbipd-win/releases) \
+[More info: https://learn.microsoft.com/en-us/windows/wsl/connect-usb ](https://learn.microsoft.com/en-us/windows/wsl/connect-usb) \
 `dism.exe /online /enable-feature /featurename:Microsoft-Windows-Subsystem-Linux /all /norestart` \
 `usbipd list` \
 ![usbipd list](img/wsl_pico_setup__usbipd_list.png) \
@@ -19,10 +19,10 @@ sudo apt install git xxd dhex git cmake gcc-arm-none-eabi libnewlib-arm-none-eab
 
 2. configure python venv [ wsl / bash / user ] \
 `chmod +x py/bin/activate` \
-![python3 venv apt](img/wsl_pico_setup__usbipd_installvenv.png) \
-```python3 -m venv py```
-![python3 venv apt](wsl_pico_setup__py3venvdir.png)
-```source py/bin/activate```
+![python3 venv apt](img/wsl_pico_setup__usbipd_installvenv.png)
+```python3 -m venv py``` \
+![python3 venv apt](wsl_pico_setup__py3venvdir.png) \
+```source py/bin/activate ```\
 
 3. install pyserial & mpremote \
 `pip install mpremote` \
@@ -64,11 +64,41 @@ mkdir build
 cd build
 cmake ..
 make
-cp picotool ${HOME}/py/bin/
-picotool info
+sudo ./picotool info
 ```
 ![pico tool make](wsl_pico_setup__picotool_build.jpg)
 ![pico tool make](wsl_pico_setup__picotool_use.jpg)
+
+6. pico mode switching
+
+```
+sudo ./picotool/picotool info
+# No accessible RP2040 devices in BOOTSEL mode were found.
+
+/mnt/c/Program\ Files/usbipd-win/usbipd.exe list | egrep RP2
+# 12-1   2e8a:0003  USB Mass Storage Device, RP2 Boot                             Attached
+
+/mnt/c/Program\ Files/usbipd-win/usbipd.exe bind --force --busid 12-1 # needs to be run from admin command prompt, gdi
+/mnt/c/Program\ Files/usbipd-win/usbipd.exe attach --wsl --busid 12-1
+
+sudo ./picotool/picotool info
+# Program Information
+#  name:            MicroPython
+#  version:         v1.23.0
+#  features:        thread support
+#                   USB REPL
+#  frozen modules:  aioble/security, aioble/l2cap, aioble/client, aioble/central, aioble/server, aioble/peripheral, aioble/device, aioble/core, aioble, urequests, webrepl_setup, webrepl, ssl, ntptime, mip,
+#                   requests, neopixel, dht, ds18x20, onewire, uasyncio, asyncio/stream, asyncio/lock, asyncio/funcs, asyncio/event, asyncio/core, asyncio, _boot_fat, _boot, rp2
+
+sudo ./picotool/picotool reboot
+
+/mnt/c/Program\ Files/usbipd-win/usbipd.exe bind --force --busid 12-1
+/mnt/c/Program\ Files/usbipd-win/usbipd.exe attach --wsl --busid 12-1
+
+```
+
+
+
 
 99. Modify .bashrc etc \
 `chmod +x py/bin/activate`
