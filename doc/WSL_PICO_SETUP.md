@@ -6,16 +6,12 @@
 1. usbipd
 [Install usbipd: https://github.com/dorssel/usbipd-win/releases](https://github.com/dorssel/usbipd-win/releases) \
 [More info: https://learn.microsoft.com/en-us/windows/wsl/connect-usb](https://learn.microsoft.com/en-us/windows/wsl/connect-usb) \
-
 `usbipd list` \
-![usbipd list](img/wsl_pico_setup__usbipd_list.png)
-
+![usbipd list](img/wsl_pico_setup__usbipd_list.png) \
 `usbipd bind --force --busid 00-00` \
-![usbipd bind](img/wsl_pico_setup__usbipd_bind.png)
-
+![usbipd bind](img/wsl_pico_setup__usbipd_bind.png) \
 `usbipd attach --wsl --busid 00-00` \
-![usbipd attach](img/wsl_pico_setup__usbipd_attach.png)
-
+![usbipd attach](img/wsl_pico_setup__usbipd_attach.png) \
 
 2. python venv \
 `sudo apt install python3.11-venv` \
