@@ -8,6 +8,10 @@ discord : jojess \
 fedi : https://nyxa.jojess.net \
 gmail : jojessfournier
 
+# DOCS
+[Connecting USB Devices to WSL applications](https://github.com/jojessf/kumosys2024/blob/kumosys/doc/WSL_PICO_SETUP.md)
+
+
 # LICENSE
 Available under terms of GPLv3 'cuz am lazy https://www.gnu.org/licenses/gpl-3.0.en.html
 
