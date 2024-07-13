@@ -9,7 +9,7 @@ fedi : https://nyxa.jojess.net \
 gmail : jojessfournier
 
 # DOCS
-[Connecting USB Devices to WSL applications](https://github.com/jojessf/kumosys2024/blob/kumosys/doc/WSL_PICO_SETUP.md)
+[doc/WSL_PICO_SETUP.md - Connecting USB Devices to WSL applications](doc/WSL_PICO_SETUP.md)
 
 
 # LICENSE
