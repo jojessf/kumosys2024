@@ -145,6 +145,139 @@ sub getX {
    return "UwU";
 }
 
+sub getDB {
+   my $self = shift;
+   my $dbh  = $self->{dbh};
+   
+   my $opt = {};
+   if ( ! ref( $_[0] ) ) {
+      if ( scalar(@_) == 1 ) {
+         $opt->{name} = shift;
+      } elsif ( scalar(@_) == 2 ) {
+         $opt->{realm}  = shift;
+         $opt->{key}    = shift;
+      } elsif ( scalar(@_) == 3 ) {
+         $opt->{table}    = shift;
+         $opt->{realm}  = shift;
+         $opt->{key}    = shift;
+      }
+   } elsif ( ref( $_[0] ) =~ /HASH/ ) {
+      $opt = shift;
+   }
+
+   $opt->{name}  ||= $opt->{key};
+   $opt->{table} ||= "postlog";
+   $opt->{limit} ||= 1;
+   $opt->{url}   ||= $opt->{realm};
+   $opt->{url}   ||= "kumosys";
+   $opt->{ts};
+   $opt->{utime};
+   $opt->{res};
+   $opt->{cachestr};
+   $opt->{dtR} = strftime "%Y-%m-%d %H:%M:%S", localtime;
+   
+   my $query = "SELECT * from ".$opt->{table}. " WHERE name=?";
+   if ( $opt->{url} ) {
+      $query .= " AND url=?";
+   }
+   $query .= " ORDER BY ts DESC"; 
+   if ( $opt->{limit} ) {
+      $query .= " LIMIT ".$opt->{limit};
+   }
+   my $values = [];
+   if ( $opt->{url} ) {
+      $values = [ $opt->{name}, $opt->{url} ];
+   } elsif ( $opt->{name} ) {
+      $values = [ $opt->{name} ];
+   }
+   
+   my $STHi = $dbh->prepare($query);
+   $self->log("msg", "DB: " . $query . ":: " . join(",", @{$values}) ) if $ENV{DEBUG};
+   $STHi->execute(@{$values});
+   
+   my $res;
+   while (my $ref = $STHi->fetchrow_hashref()) {
+      $res = $ref->{res};
+   }
+
+   return $res;
+}
+
+sub postDB {
+   my $self = shift;
+   # my $opt  = shift;
+   my $dbh  = $self->{dbh};
+   
+   my $opt = {};
+   if ( ! ref( $_[0] ) ) {
+      if ( scalar(@_) == 2 ) {
+         $opt->{key}  = shift;
+         $opt->{val}  = shift;
+      } elsif ( scalar(@_) == 3 ) {
+         $opt->{realm}  = shift;
+         $opt->{key}    = shift;
+         $opt->{val}    = shift;
+      } elsif ( scalar(@_) == 4 ) {
+         $opt->{table}  = shift;
+         $opt->{realm}  = shift;
+         $opt->{key}    = shift;
+         $opt->{val}    = shift;
+      }
+   } elsif ( ref( $_[0] ) =~ /HASH/ ) {
+      $opt = shift;
+   }
+   
+   return 0 if ref($opt) !~ /HASH/;
+   
+   $opt->{name}  ||= $opt->{key};
+   $opt->{res}   ||= $opt->{val};
+   $opt->{url}   ||= $opt->{realm};
+   
+   $opt->{table} ||= "postlog";
+   $opt->{name}  ||= "testyjunk";
+   $opt->{url}   ||= "mystery";
+   $opt->{utime} ||= time;
+   
+   return 0 if ! $opt->{res};
+   
+   
+   my $DBFields;
+   my $InsertVals;
+   OKEY: foreach my $key ( sort keys %{ $opt }) {
+      next OKEY if $key =~ /table|key|val|realm/;
+      $DBFields .= "$key,";
+      push @{$InsertVals}, $opt->{$key};
+   }
+   chop($DBFields);
+   
+   my $ReValues;
+   my $DBValues = "VALUES";
+   my $DBIVal = 'VALUES (';
+   my $DBFieldsI = ("(");
+
+   foreach my $fi (split(",", $DBFields )) {
+      $DBIVal     .= "?,";
+      $ReValues  .= "`$fi`=VALUES(`$fi`),";
+      $DBFieldsI .= "`$fi`,";
+   }
+   chop($DBFieldsI);
+   chop($DBIVal);
+   chop($ReValues);
+   $DBIVal.= ")";
+   $DBFieldsI .= ")";
+   
+   
+   my $query = "INSERT INTO ". $opt->{table} . " $DBFieldsI $DBIVal ON DUPLICATE KEY UPDATE $ReValues;";
+   $self->log( "msg", $query . "::" . join(",", @{$InsertVals}));
+   my $STHi = $dbh->prepare($query);
+   
+   $STHi->execute(@{$InsertVals});
+   
+   
+   
+   
+   return 1;
+}
 
 
 sub getTenki {
@@ -547,15 +680,28 @@ sub log {
 
 if ( $ENV{DEBUG} ) {
    my $k = Kumo::Sys2024->new();
-   $k->startup();
-   $k->update();
-   $k->getTenki();
+   $k->startup(); # maybe move this to part of the constructor ...
+   $k->update(); # maybe add this to constructor, too?  needs to run before getAQI and getTenki
    $k->getAQI();
-   my $WD   = $k->{data}->{webdata};
-   # use Data::Dumper; print Dumper([ $WD ]) . "\n";
-   # use Data::Dumper; print Dumper([ $k->getX("precips"), $k->getX("wind"), $k->getX("temp"), $k->getX("forecastShort"), $k->getX("forecast") ]) . "\n";
-   # use Data::Dumper; print Dumper([ $k->getX("precip") ]) . "\n";
-   use Data::Dumper; print Dumper([ "Wnow", $k->getX("weathernow") ]) . "\n";
+   $k->getTenki();
+   # my $WD   = $k->{data}->{webdata};
+   # 
+   # use Data::Dumper; print Dumper([ 
+   #    "A = ".$k->getX("aqipm25")  # depends on startup/update/getAQI being run first ...
+   # ]) . "\n";
+   # 
+   # use Data::Dumper; print Dumper([ "Wnow", $k->getX("weathernow") ]) . "\n";
+   use Data::Dumper; print Dumper([ "getDB_simpleName:" , $k->getDB("meow") ]) . "\n";
+   use Data::Dumper; print Dumper([ "getDB_byParms:" , $k->getDB({"name" =>"meow"}) ]) . "\n";
+   
+   use Data::Dumper; print Dumper([  $k->postDB({}) ]) . "\n";
+   use Data::Dumper; print Dumper([  $k->postDB({name=>'', 'res'=>"stuff"}) ]) . "\n";
+   use Data::Dumper; print Dumper([  $k->postDB({name=>0, 'res'=>"cacawww"}) ]) . "\n";
+   use Data::Dumper; print Dumper([  $k->postDB({name=>"bettertest", 'res'=>"somevaluwu"}) ]) . "\n";
+   use Data::Dumper; print Dumper([  $k->postDB({key=>"dognoises", 'res'=>"awawawa"}) ]) . "\n";
+   use Data::Dumper; print Dumper([  $k->postDB("nya", "ha") ]) . "\n";
+   use Data::Dumper; print Dumper([  $k->postDB("praxis", "nya", "ha") ]) . "\n";
+   
 };
 
 
