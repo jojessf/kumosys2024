@@ -66,8 +66,6 @@ cmake ..
 make
 sudo ./picotool info
 ```
-![pico tool make](wsl_pico_setup__picotool_build.jpg)
-![pico tool make](wsl_pico_setup__picotool_use.jpg)
 
 6. pico mode switching
 
@@ -90,10 +88,13 @@ sudo ./picotool/picotool info
 #  frozen modules:  aioble/security, aioble/l2cap, aioble/client, aioble/central, aioble/server, aioble/peripheral, aioble/device, aioble/core, aioble, urequests, webrepl_setup, webrepl, ssl, ntptime, mip,
 #                   requests, neopixel, dht, ds18x20, onewire, uasyncio, asyncio/stream, asyncio/lock, asyncio/funcs, asyncio/event, asyncio/core, asyncio, _boot_fat, _boot, rp2
 
-sudo ./picotool/picotool reboot
 
 /mnt/c/Program\ Files/usbipd-win/usbipd.exe bind --force --busid 12-1
 /mnt/c/Program\ Files/usbipd-win/usbipd.exe attach --wsl --busid 12-1
+
+sudo ~/py/bin/mpremote
+
+sudo ~/py/bin/mpremote fs ls
 
 ```
 
