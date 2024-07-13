@@ -11,7 +11,7 @@
 `usbipd bind --force --busid 00-00` \
 ![usbipd bind](img/wsl_pico_setup__usbipd_bind.png) \
 `usbipd attach --wsl --busid 00-00` \
-![usbipd attach](img/wsl_pico_setup__usbipd_attach.png) \
+![usbipd attach](img/wsl_pico_setup__usbipd_attach.png)
 
 2. python venv \
 `sudo apt install python3.11-venv` \
@@ -21,9 +21,15 @@
 ![python3 venv apt](wsl_pico_setup__py3venvdir.png)
 
 
-3. Modify .bashrc etc \
-`chmod +x py/bin/activate` \
+3. mpremote \
+`pip install mpremote` \
+![pip install mpremote](img/wsl_pico_setup__pip_mpremote.jpg)
+
+
+99. Modify .bashrc etc \
+`chmod +x py/bin/activate`
 ```
 py/bin/activate
 export PATH=${HOME}/py/bin:${PATH}
 ```
+
