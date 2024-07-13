@@ -1,0 +1,8 @@
+{
+   "README": "populate appropriate db host/user/pass and rename to kumosys.cred"
+   "username": "...",
+   "password": "...",
+   "database": "kumosys",
+   "hostname": "...",
+   "port": "3306"
+}
