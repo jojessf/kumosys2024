@@ -1,0 +1,27 @@
+{
+   "kumosys.conf notes" : "rename this to kumosys.conf, change the default, or add parameters haha ~  uwu",
+   "tableLog"           : "webdatalog",
+   "table"              : "webdata",
+   "loginterval"        : 1800,
+   "logstrmaxlen"       : 32,
+   "webdata": [
+      {
+         "table"  : "webdata",
+         "name"   : "weathernow",
+         "url"    : "https://api.weather.gov/stations/.../observations/latest",
+         "maxage" : "300"
+      },
+      {
+         "table"  : "webdata",
+         "name"   : "weather",
+         "url"    : "https://api.weather.gov/gridpoints/.../..,../forecast",
+         "maxage" : "1800"
+      },
+      {
+         "table" : "webdata",
+         "name"  : "aqi",
+         "url"   : "https://api.waqi.info/feed/..../?token=....",
+         "maxage": "1800"
+      }
+   ]
+}
