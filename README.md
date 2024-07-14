@@ -10,12 +10,14 @@ gmail : jojessfournier
 
 # DOCS
 [doc/WSL_PICO_SETUP.md - Connecting USB Devices to WSL applications](doc/WSL_PICO_SETUP.md)
+[doc/LCD2004.md - LCD2004 I2C PICO](doc/LCD2004.md)
 
 
 # LICENSE
 Available under terms of GPLv3 'cuz am lazy https://www.gnu.org/licenses/gpl-3.0.en.html
 
 # SCREENCAPS
-![rpi weather monitor](doc/img/README__picoWeatherMon.jpg)
+![rpi weather monitor](doc/img/README__rpiWeatherMon.jpg)
+![pico weather monitor](doc/img/lcd2004_picoWeatherMon.jpg)
 ![aqi tracking](doc/img/README__aqipm25_tracking.jpg)
 ![current weather](doc/img/README__current_weather_fields.jpg)

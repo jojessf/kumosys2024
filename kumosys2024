@@ -57,6 +57,35 @@ get '/jikan' => sub($c) {
   $c->render(text=>"".localtime);
 };
 
+
+get '/jikanccyymmdd' => sub($c) {
+  my $time = strftime "%Y%m%d", localtime;
+  $c->render(text=>"".$time);
+};
+
+get '/jikanyymmdd' => sub($c) {
+  my $time = strftime "%y%m%d", localtime;
+  $c->render(text=>"".$time);
+};
+
+get '/jikanhhmmss' => sub($c) {
+  my $time = strftime "%H:%M:%S", localtime;
+  $c->render(text=>"".$time);
+};
+
+get '/jikanStr20' => sub($c) {
+  my $dayz = substr("".localtime, 0, 3 );
+  my $yymmdd = strftime "%y%m%d", localtime;
+  my $hhmmss = strftime "%H:%M:%S", localtime;
+  $c->render( text => $dayz . " " . $yymmdd . " " . $hhmmss . "" );
+};
+
+
+get '/jikanday' => sub($c) {
+  my $day = substr("".localtime, 0, 3 );
+  $c->render(text=>$day);
+};
+
 get '/tenki' => sub($c) {
   $c->render(text=> $kumosys->getTenki() )
 };
@@ -78,6 +107,8 @@ get '/get' => sub($c) {
     $c->render(text=> "UwU" );
   }
 };
+
+
 
 get '/getDB' => sub($c) {
   my $table   = $c->param('table');

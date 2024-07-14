@@ -3,7 +3,7 @@
 
 0. have WSL v2 debian 12, git, etc
 ```
-sudo apt install git xxd dhex git cmake gcc-arm-none-eabi libnewlib-arm-none-eabi libstdc++-arm-none-eabi-newlib build-essential pkg-config libusb-1.0-0-dev python3.11-venv usbutils
+sudo apt install ripgrep git xxd dhex git cmake gcc-arm-none-eabi libnewlib-arm-none-eabi libstdc++-arm-none-eabi-newlib build-essential pkg-config libusb-1.0-0-dev python3.11-venv usbutils python3-dev
 ```
 
 1. get usbipd [ cmd.exe, administrator ] \
@@ -67,7 +67,16 @@ make
 sudo ./picotool info
 ```
 
-6. pico mode switching
+
+6. rp2/pico lib
+```
+pip install mip
+pip install rp2
+sudo ~/py/bin/mpremote connect  /dev/ttyACM0 mip install rp2
+```
+
+
+7. pico mode switching
 
 ```
 sudo ./picotool/picotool info
@@ -76,8 +85,9 @@ sudo ./picotool/picotool info
 /mnt/c/Program\ Files/usbipd-win/usbipd.exe list | egrep RP2
 # 12-1   2e8a:0003  USB Mass Storage Device, RP2 Boot                             Attached
 
-/mnt/c/Program\ Files/usbipd-win/usbipd.exe bind --force --busid 12-1 # needs to be run from admin command prompt, gdi
-/mnt/c/Program\ Files/usbipd-win/usbipd.exe attach --wsl --busid 12-1
+#/mnt/c/Program\ Files/usbipd-win/usbipd.exe bind --force --busid 12-1 # needs to be run from admin command prompt, gdi
+#usbipd bind --force --busid 8-1
+/mnt/c/Program\ Files/usbipd-win/usbipd.exe attach --wsl --busid 8-1
 
 sudo ./picotool/picotool info
 # Program Information
@@ -95,6 +105,33 @@ sudo ./picotool/picotool info
 sudo ~/py/bin/mpremote
 
 sudo ~/py/bin/mpremote fs ls
+
+```
+
+9. liyuanhe211's LCD2004 lib
+```
+cd ~/picorem/
+git clone https://github.com/liyuanhe211/Micropython_LCD1602_LCD2004_I2C_Lib
+sudo ~/py/bin/mpremote fs cp Micropython_LCD1602_LCD2004_I2C_Lib/lib_lcd1602_2004_with_i2c.py :lib_lcd1602_2004_with_i2c.py
+sudo ~/py/bin/mpremote fs ls
+```
+
+10. lcd driver
+```
+#!python
+# -*- coding: utf-8 -*-
+
+import time
+from machine import Pin, SoftI2C
+from lib_lcd1602_2004_with_i2c import LCD
+
+sda_pin = 4 # pin#6
+scl_pin = 5 # pin#7
+
+# lcd = LCD(SoftI2C(scl=Pin(scl_pin), sda=Pin(sda_pin), freq=399361))
+lcd = LCD(SoftI2C(scl=scl_pin, sda=sda_pin, freq=399361, timeout=50000))
+lcd.puts("Awoo Awoo Awooooo :3")
+
 
 ```
 
