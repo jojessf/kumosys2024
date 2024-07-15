@@ -26,6 +26,7 @@ gmail : jojessfournier
 # SCREENCAPS
 * python - st7789b/pi2clock.py
 ![rpi weather monitor](doc/img/README__rpiWeatherMon.jpg)
+![rpi weather monitor](doc/img/lcd2004_picoWeatherMonForecast.jpg)
 
 * micropython - lcd2004/picolcdclock.py
 

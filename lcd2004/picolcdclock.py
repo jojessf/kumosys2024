@@ -6,6 +6,9 @@ import os, sys, network, socket, time, requests, array
 from machine import Pin, SoftI2C
 from lib_lcd1602_2004_with_i2c import LCD
 
+# mpremote fs cp lib_lcd1602_2004_with_i2c.py :lib_lcd1602_2004_with_i2c.py
+# mpremote fs cp picolcdclock.py :main.py
+
 # --------------------------------------------- #
 wifissid = ''
 wifipass = ''
