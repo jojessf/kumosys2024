@@ -7,7 +7,7 @@
 * st7789b - unrestricted - [waveshareteam - LCD_1inch9](https://github.com/waveshareteam)
 
 # DOCS
-[doc/WSL_PICO_SETUP.md - Connecting USB Devices to WSL applications](doc/WSL_PICO_SETUP.md)
+[doc/WSL_PICO_SETUP.md - Connecting USB Devices to WSL applications](doc/WSL_PICO_SETUP.md) \
 [doc/LCD2004.md - LCD2004 I2C PICO](doc/LCD2004.md)
 
 # SCREENCAPS
