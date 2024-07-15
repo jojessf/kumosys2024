@@ -29,42 +29,6 @@ progresscharslen = len(progresschars) - 1
 def msg(realm,msg):
     print("("+realm+") "+msg)
     return
-# --------------------------------------------- #
-def getR(keyname):
-  getStr = ""
-  gurl = host + '/'+keyname
-  msg("get", gurl)
-  try:
-      time.sleep(sleepyMicro)
-      getR = requests.get(gurl)
-      getStr = str(getR.text)
-  except:
-      msg("error","getR fail:"+gurl)
-  return getStr
-# ------------------------------------------------------ #
-def getDBW(realm, keyname):
-   getStr = ""
-   gurl = host+'/getDB?table=webdata&realm='+realm+'&name='+keyname
-   msg("get", gurl)
-   try:
-      time.sleep(sleepyMicro)
-      getX   = requests.get(gurl)
-      getStr = str(getX.text)
-   except:
-       msg("error", "getDBW fail:" + gurl)
-   return getStr
-# ------------------------------------------------------ #
-def getX(keyname):
-   getStr = ""
-   gurl = host+'/get?X='+keyname
-   msg("get", gurl)
-   try:
-       time.sleep(sleepyMicro)
-       getX   = requests.get(gurl)
-       getStr = str(getX.text)
-   except:
-       msg("error", "getX fail:" + gurl)
-   return getStr
 # ------------------------------------------------------ #
 def progresschar():
    global pcq
@@ -78,6 +42,45 @@ def pchx():
    lcd.puts(progresschar(),3,19)
    time.sleep(sleepyPico)
    return
+# --------------------------------------------- #
+def getR(keyname):
+  getStr = ""
+  gurl = host + '/'+keyname
+  msg("get", gurl)
+  pchx()
+  try:
+      time.sleep(sleepyMicro)
+      getR = requests.get(gurl)
+      getStr = str(getR.text)
+  except:
+      msg("error","getR fail:"+gurl)
+  return getStr
+# ------------------------------------------------------ #
+def getDBW(realm, keyname):
+   getStr = ""
+   gurl = host+'/getDB?table=webdata&realm='+realm+'&name='+keyname
+   msg("get", gurl)
+   pchx()
+   try:
+      time.sleep(sleepyMicro)
+      getX   = requests.get(gurl)
+      getStr = str(getX.text)
+   except:
+       msg("error", "getDBW fail:" + gurl)
+   return getStr
+# ------------------------------------------------------ #
+def getX(keyname):
+   getStr = ""
+   gurl = host+'/get?X='+keyname
+   msg("get", gurl)
+   pchx()
+   try:
+       time.sleep(sleepyMicro)
+       getX   = requests.get(gurl)
+       getStr = str(getX.text)
+   except:
+       msg("error", "getX fail:" + gurl)
+   return getStr
 # ------------------------------------------------------ #
 def connect():
     wlan = network.WLAN(network.STA_IF)
@@ -93,15 +96,6 @@ def connect():
 time.sleep(sleepyTimeShort)
 yeee="wifi up :3"
 pchx()
-try:    
-    connect()
-except:
-    yeee="wifi fail"
-
-lcd.puts(yeee,1,0)
-msg("wifi", yeee)
-
-pchx()
 lcd.clear()
 pchx()
 lcd.off()
@@ -110,8 +104,15 @@ time.sleep(sleepyMicro)
 pchx()
 lcd.on()
 pchx()
+try:    
+    connect()
+except:
+    yeee="wifi fail"
 
-lcd.puts(progresschar(),3,19)
+lcd.puts(yeee,1,0)
+msg("wifi", yeee)
+
+
 
 try:    
     jikanStr    = "some time? :3"
@@ -128,6 +129,7 @@ try:
     day         = "XXX"
     yymmdd      = "yymmdd"
     hhmmss      = "000000"
+    visblty     = "999"
     try:
         time.sleep(sleepyMicro)
         getUpdt = requests.get(host + '/update')
@@ -142,31 +144,24 @@ try:
 
         # - CYCLE_OUT ---------------------------------------------------------- #
         if lq >= loopCycle:
-            lcd.puts("UwU - refresh - UwU",3,0)
+            lcd.puts("Frotting ... UwU",3,0)
             pchx()
             forecastShort = getDBW("weather", "Conditions") # get short form forecast - e.g.: "Partly Cloudy"
-            pchx()
             forecastShort = forecastShort.lower() # lc
             forecastShort = forecastShort.replace(" ", "")        # strip spaces - e.g.: "partlycloudy"
             forecastShort = forecastShort[0:20]
             jikanStr = getR("jikanStr20")
-            pchx()
             updateStr = getR("update")
-            pchx()
             tenkiStr = getR("tenki")
-            pchx()
             aqiNull  = getR("aqi")
-            pchx()
+            visblty  = getDBW("weather", "visibility")
+            moist    = getDBW("weather", "humidty")
+            windStr  = getDBW("weather", "windnow")
             aqiStr   = getDBW("weather", "aqipm25")
-            pchx()
             tempNow  = getDBW("weather", "tempnow")
-            pchx()
             tempSoon = getDBW("weatherlog", "temp")
-            pchx()
             precips  = getDBW("weatherlog", "precips")
-            pchx()
             precip   = getDBW("weatherlog", "precip")            
-            pchx()
             lcd.clear()
             lq = 0
         # - MAIN  ----------------------------------------- #
@@ -177,13 +172,15 @@ try:
         lcd.puts(jikanStr,0,0)
         time.sleep(sleepyPico)
         
-        Line1 = "T: "+tempNow +"~"+tempSoon+" F,"
-        Line1 = Line1 + " P: " + precip
+        Line1 = "T:"+tempNow +"~"+tempSoon
+        Line1 = Line1+", P:"+ precip
+        Line1 = Line1+", H:"+moist
         lcd.puts(Line1,1,0)
         time.sleep(sleepyPico)
         
-        Line2 = "AQI: "+aqiStr+", "
-        Line2 = Line2 
+        Line2 = "AQI:"+aqiStr
+        Line2 = Line2+",W:"+windStr
+        Line2 = Line2+",V:"+visblty
         lcd.puts(Line2,2,0)
         time.sleep(sleepyPico)
         
