@@ -9,6 +9,7 @@
 # DOCS
 [doc/WSL_PICO_SETUP.md - Connecting USB Devices to WSL applications](doc/WSL_PICO_SETUP.md) \
 [doc/LCD2004.md - LCD2004 I2C PICO](doc/LCD2004.md)
+[doc/LCD2004.md - USBIPD cheat sheets](doc/USBIPD.md)
 
 # SCREENCAPS
 * python - st7789b/pi2clock.py \
