@@ -11,14 +11,12 @@
 [doc/LCD2004.md - LCD2004 I2C PICO](doc/LCD2004.md)
 
 # SCREENCAPS
-* python - st7789b/pi2clock.py
-![rpi weather monitor](doc/img/README__rpiWeatherMon.jpg)
-![rpi weather monitor](doc/img/lcd2004_picoWeatherMonForecast.jpg)
-
-* micropython - lcd2004/picolcdclock.py
-
-![pico weather monitor](doc/img/lcd2004_picoWeatherMon.jpg)
-![aqi tracking](doc/img/README__aqipm25_tracking.jpg)
+* python - st7789b/pi2clock.py \
+![rpi weather monitor](doc/img/README__rpiWeatherMon.jpg) \
+* micropython - lcd2004/picolcdclock.py \
+![rpi weather monitor](doc/img/lcd2004_picoWeatherMonForecast.jpg) \
+![pico weather monitor](doc/img/lcd2004_picoWeatherMon.jpg) \
+![aqi tracking](doc/img/README__aqipm25_tracking.jpg) \
 ![current weather](doc/img/README__current_weather_fields.jpg)
 
 # LICENSE
