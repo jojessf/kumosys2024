@@ -12,10 +12,11 @@
 
 # SCREENCAPS
 * python - st7789b/pi2clock.py \
-![rpi weather monitor](doc/img/README__rpiWeatherMon.jpg) \
+![rpi weather monitor](doc/img/README__rpiWeatherMon.jpg)
 * micropython - lcd2004/picolcdclock.py \
 ![rpi weather monitor](doc/img/lcd2004_picoWeatherMonForecast.jpg) \
-![pico weather monitor](doc/img/lcd2004_picoWeatherMon.jpg) \
+![pico weather monitor](doc/img/lcd2004_picoWeatherMon.jpg)
+* planz
 ![aqi tracking](doc/img/README__aqipm25_tracking.jpg) \
 ![current weather](doc/img/README__current_weather_fields.jpg)
 
