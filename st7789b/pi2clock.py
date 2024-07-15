@@ -19,6 +19,8 @@ host = "http://10.0.0.5:8096/"
 # Raspberry Pi pin configuration:
 loopCycle = 4
 sleepyTime = 2
+sleepyTime15 = 1.5
+sleepyTime1 = 1
 sleepyTimeShort = 0.5
 sleepyMicro = 0.25
 
@@ -80,6 +82,17 @@ def getX(keyname):
        logging.info("getX fail")
    return getStr
 
+def strSplit(s, chunksize=20):
+    pos = 0
+    list = []
+    while(pos != -1):
+        new_pos = s.rfind(" ", pos, pos+chunksize)
+        if(new_pos == pos):
+            new_pos += chunksize # force split in word
+        list.append(s[pos:new_pos])
+        pos = new_pos
+    return list
+
 def stringWrapToList(wid,str):
    str2=textwrap.fill(str,wid)
    list = str2.split("\n")
@@ -111,6 +124,20 @@ try:
     while 1==1:
         lq += 1
         
+        if lq == 1:
+           jikanStr   = getR("jikan")
+           tenkiStr   = getR("tenki")
+           aqiNull    = getR("aqi")
+           aqiStr     = getX("aqipm25")
+           tempNow    = getX("tempnow")
+           tempSoon   = getX("temp")
+           precips    = getX("precips")
+           precip     = getX("precip")
+           wind       = getX("windnow")
+           pressure   = getX("pressure")
+           dewpoint   = getX("dewpoint")
+           visibility = getX("visibility") 
+        
         
         # - CYCLE_OUT ---------------------------------------------------------- #
         if lq >= loopCycle:
@@ -134,7 +161,6 @@ try:
             # - CYCLE_OUT / FORECAST ---------------------------------------------- #
             image2 = Image.new("RGB", (disp.height,disp.width ), "BLACK")
             draw = ImageDraw.Draw(image2)
-            
             # try:
             #    disp.ShowImage(wIco)
             # except:
@@ -143,21 +169,75 @@ try:
             
             y=0            # starting y 
             yInterval=30   # row height in pixels
-            xWid=39        # row width in characters
+            yDispMax = disp.height - (yInterval * 1.5)
+            xWid=37        # row width in characters
             draw = ImageDraw.Draw(image2)
             forecastStr = getX("forecast")
-            forecastLins = stringWrapToList(xWid,forecastStr)
+            # forecastLins = stringWrapToList(xWid,forecastStr)
+            forecastLins = strSplit(forecastStr,xWid)
             forecastLins.append("")
             forecastLins.append(forecastShort)
+            slq = 0
             for lin in forecastLins:
-               if y <= disp.height - yInterval:
-                  draw.text((0, y), lin, fill = "MAGENTA", font=Font3)
-               y=y+yInterval
+               if y > yDispMax:
+                   slq = 0
+               if slq == 0:
+                   disp.ShowImage(image2)
+                   time.sleep(sleepyTime15)
+                   image2 = Image.new("RGB", (disp.height,disp.width ), "BLACK")
+                   draw = ImageDraw.Draw(image2)
+                   y=0
+               draw.text((0, y), lin, fill = "MAGENTA", font=Font3)
+               disp.ShowImage(image2)
+               y += yInterval
+               slq += 1
             
-            disp.ShowImage(image2)
             for i in range(0,3,1):
                time.sleep(sleepyTime)
             
+            # - CYCLE_OUT / CONDITIONS --------------------------------------------- #
+            image2 = Image.new("RGB", (disp.height,disp.width ), "BLACK")
+            draw = ImageDraw.Draw(image2)
+
+  
+            aqiStr     = getX("aqipm25")
+            tempNow    = getX("tempnow")
+            tempSoon   = getX("temp")
+            precips    = getX("precips")
+            precip     = getX("precip")
+            wind       = getX("windnow")
+            pressure   = getX("pressure") 
+            dewpoint   = getX("dewpoint")
+            visibility = getX("visibility")
+            
+            # image4 = Image.new("RGB", (disp.height,disp.width ), "WHITE")
+            # draw = ImageDraw.Draw(image2)
+            
+            getJikans = requests.get(host + '/jikans')
+            jikanStrs = str(getJikans.text)
+            
+            draw.text((0, 2), u"今>"+jikanStrs, fill = "MAGENTA", font=Font3)
+            
+            draw.text((0, 30),u"雨> ", fill = "BLUE", font=Font3)
+            draw.text((50,27), precip, fill = "BLUE", font=Font3)
+            draw.text((0, 55),u"露> ", fill = "BLUE", font=Font3)
+            draw.text((50,52), dewpoint, fill = "BLUE", font=Font3)
+           
+            # draw.text((100, 30),u"> ", fill = "BLUE", font=Font3)
+            # draw.text((150,27), , fill = "BLUE", font=Font3)
+            draw.text((100, 55),u"目> ", fill = "CYAN", font=Font3)
+            draw.text((150,52), visibility, fill = "CYAN", font=Font3)
+           
+            
+            draw.text((  0, 88), u"壓", fill = "CYAN", font=Font3)
+            draw.text(( 20, 88), pressure, fill = "CYAN", font=Font4)
+            
+            draw.text((100, 88), u"風", fill = "LIGHTBLUE", font=Font3)
+            draw.text((150, 88), wind, fill = "LIGHTBLUE", font=Font4)
+
+            disp.ShowImage(image2)
+            for i in range(0,3,1):
+               time.sleep(sleepyTime)
             
             # - CYCLE_OUT / BIG CLOCK ---------------------------------------------- #
             image2 = Image.new("RGB", (disp.height,disp.width ), "BLACK")
@@ -204,14 +284,18 @@ try:
         image2 = Image.new("RGB", (disp.height,disp.width ), "BLACK")
         draw = ImageDraw.Draw(image2)
         
-        jikanStr = getR("jikan")
-        tenkiStr = getR("tenki")
-        aqiNull  = getR("aqi")
-        aqiStr   = getX("aqipm25")
-        tempNow  = getX("tempnow")
-        tempSoon = getX("temp")
-        precips  = getX("precips")
-        precip   = getX("precip")
+        jikanStr   = getR("jikan")
+        # tenkiStr   = getR("tenki")
+        # aqiNull    = getR("aqi")
+        # aqiStr     = getX("aqipm25")
+        # tempNow    = getX("tempnow")
+        # tempSoon   = getX("temp")
+        # precips    = getX("precips")
+        # precip     = getX("precip")
+        # wind       = getX("windnow")
+        # pressure   = getX("pressure")
+        # dewpoint   = getX("dewpoint")
+        # visibility = getX("visibility")
 
         # image4 = Image.new("RGB", (disp.height,disp.width ), "WHITE")
         # draw = ImageDraw.Draw(image2)
