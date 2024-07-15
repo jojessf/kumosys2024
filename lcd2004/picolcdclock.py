@@ -18,6 +18,7 @@ lcd = LCD(SoftI2C(scl=scl_pin, sda=sda_pin, freq=399361, timeout=50000))
 loopCycle = 15
 sleepyTimeLong = 4
 sleepyTime = 2
+sleepyTimeS15 = 1.5
 sleepyTimeShort = 1
 sleepyMicro = 0.5
 sleepyPico = 0.2
@@ -93,6 +94,15 @@ def connect():
         pchx()
         time.sleep(sleepyTimeShort) # 1/2 sec
 # ------------------------------------------------------ #    
+def strSplit(s, chunksize=20):
+    pos = 0
+    while(pos != -1):
+        new_pos = s.rfind(" ", pos, pos+chunksize)
+        if(new_pos == pos):
+            new_pos += chunksize # force split in word
+        yield s[pos:new_pos]
+        pos = new_pos
+# ------------------------------------------------------ #    
 time.sleep(sleepyTimeShort)
 yeee="wifi up :3"
 pchx()
@@ -121,6 +131,8 @@ try:
     updateStr   = "aaa"
     forecastShortLast = "mystery"
     forecastShort     = "mystery"
+    forecastStr       = "mysterious weather"
+    forecastLst       = ()
     aqiStr      = "uwu"
     tempNow     = "uwu"
     tempSoon    = "uwu"
@@ -150,6 +162,22 @@ try:
             forecastShort = forecastShort.lower() # lc
             forecastShort = forecastShort.replace(" ", "")        # strip spaces - e.g.: "partlycloudy"
             forecastShort = forecastShort[0:20]
+            # --------------------------------- #
+            forecastStr   = getDBW("weather","forecast")
+            forecastLst   = strSplit( forecastStr )
+            slq = 0
+            for fs in forecastLst: 
+                if slq == 0:
+                    lcd.clear()
+                lcd.puts(fs,slq,0)
+                time.sleep(sleepyPico)
+                slq+=1
+                if slq > 3:
+                    slq = 0
+                    time.sleep(sleepyTimeS15)
+            time.sleep(sleepyTimeShort)
+            # --------------------------------- #
+            
             jikanStr = getR("jikanStr20")
             updateStr = getR("update")
             tenkiStr = getR("tenki")
