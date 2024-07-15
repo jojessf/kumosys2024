@@ -360,8 +360,14 @@ sub getTenki {
          $hash = $self->{json}->decode( $raw );
          $self->log("msg", "tenki ~ " . length($raw) . "bytes..." );
 
+         open OF, ">weatherdebug.txt";
+         print OF Dumper([ $hash ]);
+         close OF;
+
          my ( $temp, $temps, $precip, $precips, $winds, $forecast, $forecastShort, $winds, $wind );
          if ( ref($hash->{properties}) =~ /HASH/ ) {
+            
+            
             if ( ref($hash->{properties}->{periods}) =~ /ARRAY/ ) {
                
                $temp      = $hash->{properties}->{periods}->[0]->{temperature}; # 89
@@ -608,7 +614,7 @@ sub update {
       } # DB get ---------------------------------------------------
 
       # LWP get / Cache Check 1 ------------------------------------
-      if ( $self->{data}->{webdata}->{$name}->{utime} <= $timefrom ) {
+      if ( $self->{data}->{webdata}->{$name}->{utime} >= $timefrom ) {
          $self->log("msg", "Fetching: $name, $url");
          my $fdata = get($url);
          
