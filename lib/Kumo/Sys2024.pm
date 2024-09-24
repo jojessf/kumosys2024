@@ -88,6 +88,7 @@ sub dbinit {
    
    my $dsn = "DBI:mysql:database=$database;host=$hostname;port=$port";
    my $dbh = DBI->connect($dsn, $username, $password);
+   $dbh->{mysql_auto_reconnect} = 1;
    $self->{dbh} = $dbh;
 
    # ----------------------------------------------------------------------#
