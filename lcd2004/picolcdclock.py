@@ -190,9 +190,9 @@ try:
             windStr  = getDBW("weather", "windnow")
             aqiStr   = getDBW("weather", "aqipm25")
             tempNow  = getDBW("weather", "tempnow")
-            tempSoon = getDBW("weatherlog", "temp")
-            precips  = getDBW("weatherlog", "precips")
-            precip   = getDBW("weatherlog", "precip")            
+            tempSoon = getDBW("weather", "temp")
+            precips  = getDBW("weather", "precips")
+            precip   = getDBW("weather", "precip")
             lcd.clear()
             lq = 0
         # - MAIN  ----------------------------------------- #
